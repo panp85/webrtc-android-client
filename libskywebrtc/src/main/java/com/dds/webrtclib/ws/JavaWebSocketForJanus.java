@@ -212,7 +212,7 @@ public class JavaWebSocketForJanus implements IWebSocket {
 		map.put("command", "offer");
 		map.put("sdp", sdp);
 		map.put("room", room_id);
-		map.put("session_id", session_id);
+		map.put("socketId", socketId);
 		map.put("transaction", transaction_id);
 
         JSONObject object = new JSONObject(map);
@@ -224,9 +224,9 @@ public class JavaWebSocketForJanus implements IWebSocket {
 
     public void sendIceCandidate(String socketId, IceCandidate iceCandidate) {
         //HashMap<String, Object> childMap = new HashMap();
-        childMap.put("id", iceCandidate.sdpMid);
-        childMap.put("label", iceCandidate.sdpMLineIndex);
-        childMap.put("candidate", iceCandidate.sdp);
+        //childMap.put("id", iceCandidate.sdpMid);
+        //childMap.put("label", iceCandidate.sdpMLineIndex);
+        //childMap.put("candidate", iceCandidate.sdp);
         //childMap.put("socketId", socketId);
         HashMap<String, Object> map = new HashMap();
         //map.put("eventName", "__ice_candidate");
