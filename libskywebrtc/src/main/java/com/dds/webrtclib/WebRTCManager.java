@@ -62,7 +62,12 @@ public class WebRTCManager implements ISignalingEvents {
             _mediaType = mediaType;
             _videoEnable = mediaType != MediaType.TYPE_AUDIO;
             _roomId = roomId;
-            _webSocket = new JavaWebSocket(this);
+			if(mediaType == MediaType.TYPE_MEETING_JANUS){
+				_webSocket = new JavaWebSocketForJanus(this);
+			}
+			else{
+            	_webSocket = new JavaWebSocket(this);
+			}
 			Log.i(TAG, "ppt, in WebRTCManager, go to _webSocket.connect.");
             _webSocket.connect(_wss);
 			Log.i(TAG, "ppt, in WebRTCManager, return _webSocket.connect.");

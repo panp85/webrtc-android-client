@@ -109,5 +109,24 @@ public class WebrtcUtil {
         WebRTCManager.getInstance().connect(MediaType.TYPE_MEETING, roomId);
     }
 
+	public static void call_forJanus(Activity activity, String wss, String roomId) {
+			if (TextUtils.isEmpty(wss)) {
+				wss = WSS;
+			}
+			
+			WebRTCManager.getInstance().init(wss, iceServers, new IConnectEvent() {
+				@Override
+				public void onSuccess() {
+					Log.i("ppt", "in call_forJanus, go to ChatRoomActivity.openActivity.\n");
+					ChatRoomActivity.openActivity(activity);
+				}
+	
+				@Override
+				public void onFailed(String msg) {
+	
+				}
+			});
+			WebRTCManager.getInstance().connect(MediaType.TYPE_MEETING_JANUS, roomId);
+	}
 
 }

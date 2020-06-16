@@ -9,7 +9,13 @@ import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 
 import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.drafts.Draft;
+import org.java_websocket.drafts.Draft_6455;
+import org.java_websocket.extensions.IExtension;
 import org.java_websocket.handshake.ServerHandshake;
+import org.java_websocket.protocols.IProtocol;
+import org.java_websocket.protocols.Protocol;
+
 import org.webrtc.IceCandidate;
 
 import java.io.IOException;
@@ -33,7 +39,7 @@ import javax.net.ssl.X509TrustManager;
  * Created by dds on 2019/1/3.
  * android_shuai@163.com
  */
-public class JavaWebSocket implements IWebSocket {
+public class JavaWebSocketForJanus implements IWebSocket {
 
     private final static String TAG = "dds_JavaWebSocket";
 
@@ -42,8 +48,11 @@ public class JavaWebSocket implements IWebSocket {
     private ISignalingEvents events;
 
     private boolean isOpen; //是否连接成功过
-
-    public JavaWebSocket(ISignalingEvents events) {
+	private String room_id = "000000";
+	private String session_id = null;
+	private String transaction_id;
+	private int status = 0;
+    public JavaWebSocketForJanus(ISignalingEvents events) {
         this.events = events;
     }
 
@@ -57,7 +66,11 @@ public class JavaWebSocket implements IWebSocket {
             return;
         }
         if (mWebSocketClient == null) {
-            mWebSocketClient = new WebSocketClient(uri) {
+			ArrayList<IProtocol> protocols = new ArrayList<IProtocol>();
+			protocols.add(new Protocol("janus-protocol"));
+            Draft_6455 proto_janus = new Draft_6455(Collections.<IExtension>emptyList(), protocols);
+
+            mWebSocketClient = new WebSocketClient(uri, proto_janus) {
                 @Override
                 public void onOpen(ServerHandshake handshake) {
                     isOpen = true;
@@ -131,27 +144,51 @@ public class JavaWebSocket implements IWebSocket {
     //============================需要发送的=====================================
     @Override
     public void joinRoom(String room) {
+    	room_id = room;
         Map<String, Object> map = new HashMap<>();
-        map.put("eventName", "__join");
-        Map<String, String> childMap = new HashMap<>();
-        childMap.put("room", room);
-        map.put("data", childMap);
+        map.put("janus", "create");
+		map.put("p2p", "yes");
+        //Map<String, String> childMap = new HashMap<>();
+        //childMap.put("room", room);
+        //map.put("data", childMap);
+        //map.put("room", room);
         JSONObject object = new JSONObject(map);
         final String jsonString = object.toString();
         Log.d(TAG, "send-->" + jsonString);
+		mWebSocketClient.send(jsonString);
     }
-//	mWebSocketClient.send(jsonString);
+
+	public void joinToRoom() {
+    	room_id = room;
+        Map<String, Object> map = new HashMap<>();
+        map.put("janus", "create");
+        //Map<String, String> childMap = new HashMap<>();
+        //childMap.put("room", room);
+        //map.put("data", childMap);
+        //map.put("room", room);
+        JSONObject object = new JSONObject(map);
+        final String jsonString = object.toString();
+        Log.d(TAG, "send-->" + jsonString);
+		mWebSocketClient.send(jsonString);
+    }
+
 
     public void sendAnswer(String socketId, String sdp) {
-        Map<String, Object> childMap1 = new HashMap();
-        childMap1.put("type", "answer");
-        childMap1.put("sdp", sdp);
-        HashMap<String, Object> childMap2 = new HashMap();
-        childMap2.put("socketId", socketId);
-        childMap2.put("sdp", childMap1);
+        //Map<String, Object> childMap1 = new HashMap();
+        //childMap1.put("type", "answer");
+        //childMap1.put("sdp", sdp);
+        //HashMap<String, Object> childMap2 = new HashMap();
+        //childMap2.put("socketId", socketId);
+        //childMap2.put("sdp", childMap1);
         HashMap<String, Object> map = new HashMap();
-        map.put("eventName", "__answer");
-        map.put("data", childMap2);
+        //map.put("eventName", "__answer");
+        map.put("janus", "p2p");
+        //map.put("data", childMap2);
+        map.put("command", "answer");
+		map.put("sdp", sdp);
+		map.put("room", room_id);
+		map.put("session_id", session_id);
+		map.put("transaction", transaction_id);
         JSONObject object = new JSONObject(map);
         String jsonString = object.toString();
         Log.d(TAG, "send-->" + jsonString);
@@ -160,17 +197,23 @@ public class JavaWebSocket implements IWebSocket {
 
 
     public void sendOffer(String socketId, String sdp) {
-        HashMap<String, Object> childMap1 = new HashMap();
-        childMap1.put("type", "offer");
-        childMap1.put("sdp", sdp);
+        //HashMap<String, Object> childMap1 = new HashMap();
+        //childMap1.put("type", "offer");
+        //childMap1.put("sdp", sdp);
 
-        HashMap<String, Object> childMap2 = new HashMap();
-        childMap2.put("socketId", socketId);
-        childMap2.put("sdp", childMap1);
+        //HashMap<String, Object> childMap2 = new HashMap();
+        //childMap2.put("socketId", socketId);
+        //childMap2.put("sdp", childMap1);
 
         HashMap<String, Object> map = new HashMap();
-        map.put("eventName", "__offer");
-        map.put("data", childMap2);
+        //map.put("eventName", "__offer");
+        map.put("janus", "p2p");
+        //map.put("data", childMap2);
+		map.put("command", "offer");
+		map.put("sdp", sdp);
+		map.put("room", room_id);
+		map.put("session_id", session_id);
+		map.put("transaction", transaction_id);
 
         JSONObject object = new JSONObject(map);
         String jsonString = object.toString();
@@ -180,14 +223,26 @@ public class JavaWebSocket implements IWebSocket {
     }
 
     public void sendIceCandidate(String socketId, IceCandidate iceCandidate) {
-        HashMap<String, Object> childMap = new HashMap();
+        //HashMap<String, Object> childMap = new HashMap();
         childMap.put("id", iceCandidate.sdpMid);
         childMap.put("label", iceCandidate.sdpMLineIndex);
         childMap.put("candidate", iceCandidate.sdp);
-        childMap.put("socketId", socketId);
+        //childMap.put("socketId", socketId);
         HashMap<String, Object> map = new HashMap();
-        map.put("eventName", "__ice_candidate");
-        map.put("data", childMap);
+        //map.put("eventName", "__ice_candidate");
+        //map.put("data", childMap);
+        map.put("janus", "trickle");
+		map.put("p2p", "yes");
+		
+		HashMap<String, Object> candidate = new HashMap();
+		candidate.put("sdpMid", iceCandidate.sdpMid);
+		candidate.put("sdpMLineIndex", iceCandidate.sdpMLineIndex);
+		candidate.put("candidate", iceCandidate.sdp);
+		
+		map.put("candidate", candidate);
+		//map.put("room", room_id);
+		map.put("session_id", session_id);
+		map.put("transaction", transaction_id);
         JSONObject object = new JSONObject(map);
         String jsonString = object.toString();
         Log.d(TAG, "send-->" + jsonString);
@@ -200,10 +255,40 @@ public class JavaWebSocket implements IWebSocket {
     @Override
     public void handleMessage(String message) {
         Map map = JSON.parseObject(message, Map.class);
+		String header = (String) map.get("janus");
+		//String sid = (String) map.get("session_id");
+		/*
+		if(!status.equals("success")){
+			Log.e(TAG, "ppt, in handleMessage, eventName: " + eventName);
+			return;
+		}
+		if(session_id == null && sid != null){
+			session_id = sid;
+		}
+		
         String eventName = (String) map.get("eventName");
-		Log.i(TAG, "ppt, in handleMessage, eventName: " + eventName);
+		
         if (eventName == null) return;
-        if (eventName.equals("_peers")) {
+        */
+        String eventName;
+        if(header != NULL){
+			eventName = header;
+		}
+		Log.i(TAG, "ppt, in handleMessage, eventName: " + eventName);
+        if (eventName.equals("success")) {
+			String reply = (String)map.get("reply");
+			String peers = (String)map.get("connections");
+			if(reply != null && reply.equals("create")){
+				handleJoinRoom(map);
+			}
+			else if(reply != null && reply.equals("attach")){
+				Log.i(TAG, "attach reply");
+				String[] peers_ = peers.split(",", 1);
+				ArrayList<String> connections = new ArrayList<String>(Arrays.asList(peers_));
+				events.onJoinToRoom(connections, session_id);
+			}
+        }
+		if (eventName.equals("_peers")) {
             handleJoinToRoom(map);
         }
         if (eventName.equals("_new_peer")) {
@@ -222,6 +307,19 @@ public class JavaWebSocket implements IWebSocket {
             handleAnswer(map);
         }
     }
+
+
+	private void handleJoinRoom(Map map) {
+		Map data = (Map) map.get("data");
+		JSONArray arr;
+		if (data != null) {
+			session_id = (String)data.get("id");
+			//events.onJoinRoom(connections, session_id);
+			Executors.newSingleThreadExecutor().execute(() -> {
+		       joinToRoom();
+		    });
+		}
+	}
 
     // 自己进入房间
     private void handleJoinToRoom(Map map) {
@@ -245,7 +343,6 @@ public class JavaWebSocket implements IWebSocket {
             socketId = (String) data.get("socketId");
             events.onRemoteJoinToRoom(socketId);
         }
-
     }
 
     // 处理交换信息

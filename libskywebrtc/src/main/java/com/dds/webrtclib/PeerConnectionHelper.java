@@ -164,7 +164,6 @@ public class PeerConnectionHelper {
                 e.printStackTrace();
             }
         });
-
     }
 
     public void onRemoteIceCandidate(String socketId, IceCandidate iceCandidate) {

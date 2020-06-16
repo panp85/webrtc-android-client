@@ -42,16 +42,16 @@
                 android:id="@+id/button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="10dp"
                 android:onClick="JoinRoom"
-                android:text="加入房间"
+                android:text="加入房"
                 tools:ignore="OnClick" />
 
             <Button
                 android:id="@+id/button2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="10dp"
                 android:onClick="JoinRoomSingleVideo"
                 android:text="一对一视频聊天"
                 tools:ignore="OnClick" />
@@ -60,9 +60,35 @@
                 android:id="@+id/button3"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="10dp"
                 android:onClick="JoinRoomSingleAudio"
                 android:text="一对一语音聊天"
+                tools:ignore="OnClick" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/holo_green_light"
+                android:gravity="center"
+                android:text="服务器使用janus" />
+
+            <EditText
+                android:id="@+id/et_signal2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="server地址(如ws://139.196.204.25:8188)" />
+			<EditText
+                android:id="@+id/et_room2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="房间号(123456)" />
+            <Button
+                android:id="@+id/button4"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:onClick="JoinRoom_janus"
+                android:text="加入房间(janus p2p)"
                 tools:ignore="OnClick" />
 
         </LinearLayout>

@@ -16,7 +16,9 @@ import com.dds.webrtc.R;
  */
 public class NodejsActivity extends AppCompatActivity {
     private EditText et_signal;
+	private EditText et_signal2;
     private EditText et_room;
+	private EditText et_room2;
 
 
     @Override
@@ -33,11 +35,14 @@ public class NodejsActivity extends AppCompatActivity {
     private void initView() {
         et_signal = findViewById(R.id.et_signal);
         et_room = findViewById(R.id.et_room);
+		et_signal2 = findViewById(R.id.et_signal2);
+
+		et_room2 = findViewById(R.id.et_room2);
     }
 
     private void initVar() {
-        //et_signal.setText("wss://192.168.9.149:444/wss");
-        //et_signal.setText("wss://192.254.4.2:444/wss");
+        et_signal2.setText("ws://192.168.8.109:8188/janus");
+        et_room2.setText("222222");
         et_signal.setText("ws://106.13.162.171:3000");
         et_room.setText("222222");
     }
@@ -62,5 +67,8 @@ public class NodejsActivity extends AppCompatActivity {
 
     }
 
+	public void JoinRoom_janus(View view) {
+        WebrtcUtil.call_forJanus(this, et_signal2.getText().toString(), et_room2.getText().toString().trim());
+    }
 
 }
