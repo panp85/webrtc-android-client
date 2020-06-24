@@ -11,6 +11,7 @@ import com.dds.webrtclib.ws.IConnectEvent;
 import com.dds.webrtclib.ws.ISignalingEvents;
 import com.dds.webrtclib.ws.IWebSocket;
 import com.dds.webrtclib.ws.JavaWebSocket;
+import com.dds.webrtclib.ws.JavaWebSocketForJanus;
 
 import org.webrtc.EglBase;
 import org.webrtc.IceCandidate;

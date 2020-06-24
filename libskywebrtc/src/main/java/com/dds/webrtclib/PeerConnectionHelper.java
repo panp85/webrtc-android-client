@@ -137,6 +137,7 @@ public class PeerConnectionHelper {
             _connectionIdArray.addAll(connections);
             _myId = myId;
             if (_factory == null) {
+				Log.i(TAG, "ppt, onJoinToRoom, go to createConnectionFactory");
                 _factory = createConnectionFactory();
             }
             if (_localStream == null) {
@@ -348,6 +349,8 @@ public class PeerConnectionHelper {
 
     // 退出房间
     public void exitRoom() {
+   		Exception ee = new Exception("exitRoom");
+		ee.printStackTrace();
         if (viewCallback != null) {
             viewCallback = null;
         }
@@ -389,6 +392,7 @@ public class PeerConnectionHelper {
             if (_factory != null) {
                 _factory.dispose();
                 _factory = null;
+				
             }
 
             if (_webSocket != null) {

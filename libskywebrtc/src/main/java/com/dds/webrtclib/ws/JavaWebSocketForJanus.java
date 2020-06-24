@@ -27,6 +27,8 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,6 +36,9 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+
+import java.util.UUID;
+import java.util.concurrent.Executors;
 
 /**
  * Created by dds on 2019/1/3.
@@ -49,8 +54,9 @@ public class JavaWebSocketForJanus implements IWebSocket {
 
     private boolean isOpen; //是否连接成功过
 	private String room_id = "000000";
-	private String session_id = null;
+	private long session_id = -1;
 	private String transaction_id;
+	private long handle_id;
 	private int status = 0;
     public JavaWebSocketForJanus(ISignalingEvents events) {
         this.events = events;
@@ -148,6 +154,7 @@ public class JavaWebSocketForJanus implements IWebSocket {
         Map<String, Object> map = new HashMap<>();
         map.put("janus", "create");
 		map.put("p2p", "yes");
+		map.put("transaction", UUID.randomUUID().toString());
         //Map<String, String> childMap = new HashMap<>();
         //childMap.put("room", room);
         //map.put("data", childMap);
@@ -159,14 +166,16 @@ public class JavaWebSocketForJanus implements IWebSocket {
     }
 
 	public void joinToRoom() {
-    	room_id = room;
+    	//room_id = room;
         Map<String, Object> map = new HashMap<>();
-        map.put("janus", "create");
-        //Map<String, String> childMap = new HashMap<>();
-        //childMap.put("room", room);
-        //map.put("data", childMap);
-        //map.put("room", room);
-        JSONObject object = new JSONObject(map);
+        map.put("janus", "attach");
+		map.put("p2p", "yes");
+		map.put("session_id", session_id);
+		map.put("room", room_id);
+		map.put("plugin", "janus.plugin.echotest");
+		map.put("transaction", UUID.randomUUID().toString());
+
+		JSONObject object = new JSONObject(map);
         final String jsonString = object.toString();
         Log.d(TAG, "send-->" + jsonString);
 		mWebSocketClient.send(jsonString);
@@ -174,21 +183,23 @@ public class JavaWebSocketForJanus implements IWebSocket {
 
 
     public void sendAnswer(String socketId, String sdp) {
-        //Map<String, Object> childMap1 = new HashMap();
-        //childMap1.put("type", "answer");
-        //childMap1.put("sdp", sdp);
-        //HashMap<String, Object> childMap2 = new HashMap();
-        //childMap2.put("socketId", socketId);
-        //childMap2.put("sdp", childMap1);
         HashMap<String, Object> map = new HashMap();
-        //map.put("eventName", "__answer");
-        map.put("janus", "p2p");
-        //map.put("data", childMap2);
-        map.put("command", "answer");
-		map.put("sdp", sdp);
-		map.put("room", room_id);
+        map.put("janus", "message");
+		map.put("p2p", "yes");
 		map.put("session_id", session_id);
-		map.put("transaction", transaction_id);
+		//map.put("room", room_id);
+		map.put("handle_id", handle_id);
+		long si = Long.parseLong(socketId);
+		map.put("peer_id", si);
+		
+		map.put("transaction", UUID.randomUUID().toString());
+
+		HashMap<String, Object> childMap1 = new HashMap();
+		childMap1.put("type", "answer");
+		childMap1.put("sdp", sdp);
+
+		map.put("jsep", childMap1);
+
         JSONObject object = new JSONObject(map);
         String jsonString = object.toString();
         Log.d(TAG, "send-->" + jsonString);
@@ -207,13 +218,24 @@ public class JavaWebSocketForJanus implements IWebSocket {
 
         HashMap<String, Object> map = new HashMap();
         //map.put("eventName", "__offer");
-        map.put("janus", "p2p");
+        map.put("janus", "message");
+		map.put("p2p", "yes");
+		map.put("session_id", session_id);
         //map.put("data", childMap2);
-		map.put("command", "offer");
-		map.put("sdp", sdp);
+		//map.put("command", "offer");
+		
 		map.put("room", room_id);
-		map.put("socketId", socketId);
-		map.put("transaction", transaction_id);
+		map.put("handle_id", handle_id);
+		long si = Long.parseLong(socketId);
+		map.put("peer_id", si);
+		
+		map.put("transaction", UUID.randomUUID().toString());
+
+		HashMap<String, Object> childMap1 = new HashMap();
+		childMap1.put("type", "offer");
+		childMap1.put("sdp", sdp);
+
+		map.put("jsep", childMap1);
 
         JSONObject object = new JSONObject(map);
         String jsonString = object.toString();
@@ -242,7 +264,12 @@ public class JavaWebSocketForJanus implements IWebSocket {
 		map.put("candidate", candidate);
 		//map.put("room", room_id);
 		map.put("session_id", session_id);
-		map.put("transaction", transaction_id);
+		map.put("handle_id", handle_id);
+		map.put("transaction", UUID.randomUUID().toString());
+
+		long si = Long.parseLong(socketId);
+		map.put("peer_id", si);
+		
         JSONObject object = new JSONObject(map);
         String jsonString = object.toString();
         Log.d(TAG, "send-->" + jsonString);
@@ -256,55 +283,67 @@ public class JavaWebSocketForJanus implements IWebSocket {
     public void handleMessage(String message) {
         Map map = JSON.parseObject(message, Map.class);
 		String header = (String) map.get("janus");
-		//String sid = (String) map.get("session_id");
-		/*
-		if(!status.equals("success")){
-			Log.e(TAG, "ppt, in handleMessage, eventName: " + eventName);
-			return;
-		}
-		if(session_id == null && sid != null){
-			session_id = sid;
-		}
 		
-        String eventName = (String) map.get("eventName");
-		
-        if (eventName == null) return;
-        */
-        String eventName;
-        if(header != NULL){
+        String eventName = null;
+        if(header != null){
 			eventName = header;
 		}
 		Log.i(TAG, "ppt, in handleMessage, eventName: " + eventName);
         if (eventName.equals("success")) {
 			String reply = (String)map.get("reply");
-			String peers = (String)map.get("connections");
+			//
 			if(reply != null && reply.equals("create")){
 				handleJoinRoom(map);
 			}
 			else if(reply != null && reply.equals("attach")){
 				Log.i(TAG, "attach reply");
-				String[] peers_ = peers.split(",", 1);
-				ArrayList<String> connections = new ArrayList<String>(Arrays.asList(peers_));
-				events.onJoinToRoom(connections, session_id);
+				
+				Map data = (Map) map.get("data");
+				handle_id = (long)data.get("id");
+				String peers = (String)map.get("connections");
+				String sid = session_id + "";
+					
+				if(peers != null){
+					String[] peers_ = peers.split(",", 1);				
+					ArrayList<String> connections = new ArrayList<String>(Arrays.asList(peers_));
+					events.onJoinToRoom(connections, sid);
+				}
+				else{
+					ArrayList<String> connections = new ArrayList<String>();
+					events.onJoinToRoom(connections, sid);
+				}
 			}
         }
-		if (eventName.equals("_peers")) {
+		if (eventName.equals("_peers")) {//no, attach replace
             handleJoinToRoom(map);
         }
         if (eventName.equals("_new_peer")) {
             handleRemoteInRoom(map);
         }
-        if (eventName.equals("_ice_candidate")) {
+       	if (eventName.equals("_ice_candidate")) {//trickle
             handleRemoteCandidate(map);
         }
         if (eventName.equals("_remove_peer")) {
             handleRemoteOutRoom(map);
         }
-        if (eventName.equals("_offer")) {
-            handleOffer(map);
+        if (eventName.equals("event")) {//if (eventName.equals("_offer")) {
+        	Map jsep = (Map) map.get("jsep");
+			String type = (String)jsep.get("type");
+			if(type.equals("offer")){
+            	handleOffer(map);
+			}
+			else if(type.equals("anwser")){
+				handleAnswer(map);
+			}
+			else{
+				Log.d(TAG, "no support command");
+			}
         }
-        if (eventName.equals("_answer")) {
+        if (eventName.equals("_answer")) {//no, same to offer(event)
             handleAnswer(map);
+        }
+		if (eventName.equals("trickle")) {
+            handleRemoteCandidate(map);
         }
     }
 
@@ -313,7 +352,7 @@ public class JavaWebSocketForJanus implements IWebSocket {
 		Map data = (Map) map.get("data");
 		JSONArray arr;
 		if (data != null) {
-			session_id = (String)data.get("id");
+			session_id = (long)data.get("id");
 			//events.onJoinRoom(connections, session_id);
 			Executors.newSingleThreadExecutor().execute(() -> {
 		       joinToRoom();
@@ -322,7 +361,7 @@ public class JavaWebSocketForJanus implements IWebSocket {
 	}
 
     // 自己进入房间
-    private void handleJoinToRoom(Map map) {
+    private void handleJoinToRoom(Map map) {//del
         Map data = (Map) map.get("data");
         JSONArray arr;
         if (data != null) {
@@ -340,7 +379,8 @@ public class JavaWebSocketForJanus implements IWebSocket {
         Map data = (Map) map.get("data");
         String socketId;
         if (data != null) {
-            socketId = (String) data.get("socketId");
+            long peer_id = (long) data.get("peer_id");
+			socketId = peer_id + "";
             events.onRemoteJoinToRoom(socketId);
         }
     }
@@ -350,16 +390,18 @@ public class JavaWebSocketForJanus implements IWebSocket {
         Map data = (Map) map.get("data");
         String socketId;
         if (data != null) {
-            socketId = (String) data.get("socketId");
-            String sdpMid = (String) data.get("id");
+            //socketId = (String) data.get("socketId");
+            long peer_id = (long) map.get("peer_id");
+			socketId = peer_id + "";
+            //String sdpMid = (String) data.get("id");
+            String sdpMid = (String) data.get("sdpMid");
             sdpMid = (null == sdpMid) ? "video" : sdpMid;
-            int label = (int) Double.parseDouble(String.valueOf(data.get("label")));
+            //int label = (int) Double.parseDouble(String.valueOf(data.get("label")));
+            int label = (int) Double.parseDouble(String.valueOf(data.get("sdpMLineIndex")));
             String candidate = (String) data.get("candidate");
             IceCandidate iceCandidate = new IceCandidate(sdpMid, label, candidate);
             events.onRemoteIceCandidate(socketId, iceCandidate);
         }
-
-
     }
 
     // 有人离开了房间
@@ -367,33 +409,38 @@ public class JavaWebSocketForJanus implements IWebSocket {
         Map data = (Map) map.get("data");
         String socketId;
         if (data != null) {
-            socketId = (String) data.get("socketId");
+            long peer_id = (long) data.get("peer_id");
+			socketId = peer_id + "";
             events.onRemoteOutRoom(socketId);
         }
-
     }
 
     // 处理Offer
     private void handleOffer(Map map) {
-        Map data = (Map) map.get("data");
-        Map sdpDic;
-        if (data != null) {
-            sdpDic = (Map) data.get("sdp");
-            String socketId = (String) data.get("socketId");
-            String sdp = (String) sdpDic.get("sdp");
+        //Map data = (Map) map.get("data");
+		Map jsep = (Map) map.get("jsep");
+        //Map sdpDic;
+        if (jsep != null) {
+            //sdpDic = (Map) data.get("sdp");
+            long peer_id = (long) map.get("peer_id");
+            String sdp = (String) jsep.get("sdp");
+			String socketId = peer_id + "";
             events.onReceiveOffer(socketId, sdp);
         }
-
     }
 
     // 处理Answer
     private void handleAnswer(Map map) {
-        Map data = (Map) map.get("data");
-        Map sdpDic;
-        if (data != null) {
-            sdpDic = (Map) data.get("sdp");
-            String socketId = (String) data.get("socketId");
-            String sdp = (String) sdpDic.get("sdp");
+        //Map data = (Map) map.get("data");
+		Map jsep = (Map) map.get("jsep");
+        //Map sdpDic;
+        //if (data != null) {
+		if (jsep != null) {
+            //sdpDic = (Map) data.get("sdp");
+            long peer_id = (long) map.get("peer_id");
+			String socketId = peer_id + "";
+            //String sdp = (String) sdpDic.get("sdp");
+            String sdp = (String) jsep.get("sdp");
             events.onReceiverAnswer(socketId, sdp);
         }
 

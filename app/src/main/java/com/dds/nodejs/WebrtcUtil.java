@@ -57,15 +57,20 @@ public class WebrtcUtil {
                     "inesadt")
 */
 //			new MyIceServer("stun:106.13.162.171:3478"),
-
-			new MyIceServer("turn:106.13.162.171:3478",
+			
+//			new MyIceServer("turn:106.13.162.171:3478",
+//                    "ts",
+//                    "12345678")
+            new MyIceServer("stun:192.168.8.109:3478"),
+            new MyIceServer("turn:192.168.8.109:3478",
                     "ts",
                     "12345678")
     };
 
     // signalling
     //private static String WSS = "wss://106.13.162.171/wss";
-	private static String WSS = "ws://106.13.162.171:3000";
+	//private static String WSS = "ws://106.13.162.171:3000";
+	private static String WSS = "ws://192.168.8.109:3000";
     //本地测试信令地址
     // private static String WSS = "ws://192.168.1.138:3000";
 
