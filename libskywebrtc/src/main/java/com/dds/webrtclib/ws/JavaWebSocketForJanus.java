@@ -19,6 +19,7 @@ import org.java_websocket.protocols.Protocol;
 import org.webrtc.IceCandidate;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
@@ -304,9 +305,16 @@ public class JavaWebSocketForJanus implements IWebSocket {
 				String sid = session_id + "";
 					
 				if(peers != null){
-					String[] peers_ = peers.split(",", 1);				
-					ArrayList<String> connections = new ArrayList<String>(Arrays.asList(peers_));
-					events.onJoinToRoom(connections, sid);
+					String[] peers_ = peers.split(",", -1);			
+                    try{
+                        //ArrayList<String> connections = new ArrayList<String>(Arrays.asList(peers_));
+                        ArrayList<String> connections = new ArrayList<String>();
+                        Method method = connections.getClass().getMethod("add" , Object.class);
+                        method.invoke(connections, peers_[0]);
+                        events.onJoinToRoom(connections, sid);
+                    }catch (Exception eeee){
+                        eeee.printStackTrace();
+                    }
 				}
 				else{
 					ArrayList<String> connections = new ArrayList<String>();
@@ -332,7 +340,7 @@ public class JavaWebSocketForJanus implements IWebSocket {
 			if(type.equals("offer")){
             	handleOffer(map);
 			}
-			else if(type.equals("anwser")){
+			else if(type.equals("answer")){
 				handleAnswer(map);
 			}
 			else{
